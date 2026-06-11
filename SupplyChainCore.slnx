@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="SupplyChainCore.Application/SupplyChainCore.Application.csproj" />
+  <Project Path="SupplyChainCore.Domain/SupplyChainCore.Domain.csproj" />
+  <Project Path="SupplyChainCore.Infrastructure/SupplyChainCore.Infrastructure.csproj" />
+  <Project Path="SupplyChainCore.UnitTests/SupplyChainCore.UnitTests.csproj" />
+  <Project Path="SupplyChainCore.WebApi/SupplyChainCore.WebApi.csproj" />
+</Solution>

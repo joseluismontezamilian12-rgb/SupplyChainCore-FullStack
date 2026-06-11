@@ -1,0 +1,6 @@
+@SupplyChainCore.WebApi_HostAddress = http://localhost:5277
+
+GET {{SupplyChainCore.WebApi_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
