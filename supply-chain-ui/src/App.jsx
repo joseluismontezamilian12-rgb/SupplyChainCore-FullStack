@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import './App.css';
+// 📊 NUEVO: Importación de la plataforma de analítica y KPIs empresariales
+import AnalyticsDashboard from './components/AnalyticsDashboard';
 
 function App() {
   // Estados para capturar los datos del formulario transaccional
@@ -65,7 +67,7 @@ function App() {
   };
 
   return (
-    <div style={{ padding: '30px', fontFamily: 'Arial, sans-serif', maxWidth: '600px', margin: '0 auto', textAlign: 'left' }}>
+    <div style={{ padding: '30px', fontFamily: 'Arial, sans-serif', maxWidth: '1000px', margin: '0 auto', textAlign: 'left' }}>
       <h2>📦 Gestión de Cadena de Suministro (Ledger Logístico)</h2>
       <p style={{ color: '#666' }}>Ecosistema Conectado: React + .NET Core Web API + SQL Server</p>
       
@@ -86,7 +88,7 @@ function App() {
       )}
 
       {/* Formulario de Operaciones */}
-      <form onSubmit={handleRegistrar} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+      <form onSubmit={handleRegistrar} style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxWidth: '600px' }}>
         <label><b>ID Producto:</b></label>
         <input type="number" value={productoId} onChange={(e) => setProductoId(e.target.value)} required />
 
@@ -117,17 +119,20 @@ function App() {
       <hr style={{ margin: '30px 0' }} />
 
       {/* Panel de Consultas Rápidas en Memoria */}
-      <div style={{ padding: '15px', backgroundColor: '#f8f9fa', borderRadius: '4px', border: '1px solid #dee2e6' }}>
+      <div style={{ padding: '15px', backgroundColor: '#f8f9fa', borderRadius: '4px', border: '1px solid #dee2e6', maxWidth: '600px' }}>
         <h3>🔍 Consulta de Balance de Inventario</h3>
         <button type="button" onClick={consultarStockActual} style={{ padding: '6px 12px', cursor: 'pointer' }}>
           Calcular Stock Disponible
         </button>
         {stockConsulta !== null && (
-          <p style={{ marginTop: '10px', fontSize: '18px' }}>
+          <p style={{ marginTop: '10px', fontSize: '18px', color: '#333' }}>
             Stock consolidado en Almacén {almacenId}: <b>{stockConsulta} unidades</b>
           </p>
         )}
       </div>
+
+      {/* 🚀 NUEVO: Renderizado e Inyección del Dashboard Analítico Corporativo */}
+      <AnalyticsDashboard />
     </div>
   );
 }
