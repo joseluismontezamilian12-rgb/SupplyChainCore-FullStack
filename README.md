@@ -1,8 +1,10 @@
 # 📦 SupplyChainCore — Full-Stack Supply Chain Management System
 
+[![CI](https://github.com/joseluismontezamilian12-rgb/SupplyChainCore-FullStack/actions/workflows/ci.yml/badge.svg)](https://github.com/joseluismontezamilian12-rgb/SupplyChainCore-FullStack/actions/workflows/ci.yml)
+
 Transactional inventory system built around an **immutable logistics ledger**: every stock movement (inbound, outbound, shrinkage) is validated in real time against the historical balance, and any operation that would produce a negative stock is rejected **before it persists**.
 
-Full-stack solution: a decoupled .NET 9 backend and a React frontend.
+Full-stack solution: a decoupled .NET 10 backend and a React frontend.
 
 ---
 
@@ -23,7 +25,7 @@ The backend follows **Clean Architecture** and the Single Responsibility Princip
 
 | Component | Technology | Purpose |
 | :-- | :-- | :-- |
-| Backend | .NET 9 / C# | Core server framework |
+| Backend | .NET 10 / C# | Core server framework |
 | Persistence | Entity Framework Core | Object-relational mapping |
 | Database | Microsoft SQL Server | Relational storage |
 | Testing | xUnit / Moq | Unit testing & dependency mocking |
@@ -42,7 +44,7 @@ The backend follows **Clean Architecture** and the Single Responsibility Princip
 
 ### Prerequisites
 
-- [.NET SDK 9.0+](https://dotnet.microsoft.com/)
+- [.NET SDK 10.0+](https://dotnet.microsoft.com/)
 - [Node.js 18+](https://nodejs.org/)
 - SQL Server / LocalDB
 
