@@ -6,6 +6,8 @@ Transactional inventory system built around an **immutable logistics ledger**: e
 
 Full-stack solution: a decoupled .NET 10 backend and a React frontend.
 
+**Live API:** `https://supplychaincore-api-lnxj7c.azurewebsites.net` — deployed on Azure App Service with Azure SQL Database. Every endpoint requires authentication, so start at `POST /api/auth/login` (see [seeded accounts](#seeded-accounts)).
+
 ---
 
 ## 🏛️ Architecture (Clean Architecture)
@@ -60,12 +62,16 @@ Design decisions worth calling out:
 - **A failed login is indistinguishable from an unknown email** — same response, and the same cryptographic work is performed either way, so response timing does not reveal which accounts exist.
 - `ClockSkew` is set to `TimeSpan.Zero`; the .NET default silently accepts tokens for 5 minutes past expiry.
 
-### Demo accounts (seeded)
+### Seeded accounts
+
+These are the credentials created by the migration when you run the project **locally**:
 
 | Email | Password | Role |
 | :-- | :-- | :-- |
 | `jose@supplychain.com` | `Admin123!` | `Admin` — can write to the ledger |
 | `operador@supplychain.com` | `Operador123!` | `Operador` — read-only |
+
+> 🔒 **On the live instance, only the read-only account works.** The `Admin` password there was rotated to a secret value after deployment and is deliberately not published — otherwise anyone reading this file could write to the public ledger. Use `operador@supplychain.com` / `Operador123!` to explore it.
 
 ### Configuring the signing key
 
