@@ -104,10 +104,20 @@ if (app.Configuration.GetValue<bool>("Database:AutoMigrate"))
     await db.Database.MigrateAsync();
 }
 
-if (app.Environment.IsDevelopment())
+// El documento OpenAPI y su interfaz se publican en todos los entornos, no solo
+// en desarrollo: son la documentación pública de la API, no una ayuda de
+// depuración. Ambos endpoints son anónimos a propósito — describen la forma de
+// la API, no exponen datos — mientras que cada operación sigue exigiendo token.
+app.MapOpenApi();
+
+app.UseSwaggerUI(options =>
 {
-    app.MapOpenApi();
-}
+    options.SwaggerEndpoint("/openapi/v1.json", "SupplyChainCore API v1");
+    options.DocumentTitle = "SupplyChainCore API";
+    // Servida en la raíz: quien abra la URL del despliegue aterriza en la
+    // documentación en vez de recibir un 404.
+    options.RoutePrefix = string.Empty;
+});
 
 app.UseHttpsRedirection();
 
