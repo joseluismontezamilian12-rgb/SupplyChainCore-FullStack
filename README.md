@@ -6,7 +6,13 @@ Transactional inventory system built around an **immutable logistics ledger**: e
 
 Full-stack solution: a decoupled .NET 10 backend and a React frontend.
 
-**Live API:** `https://supplychaincore-api-lnxj7c.azurewebsites.net` — deployed on Azure App Service with Azure SQL Database. Every endpoint requires authentication, so start at `POST /api/auth/login` (see [seeded accounts](#seeded-accounts)).
+### 🔗 [Try the live API →](https://supplychaincore-api-lnxj7c.azurewebsites.net)
+
+Deployed on Azure App Service with Azure SQL Database. The link opens **Swagger UI**, where you can exercise every endpoint from the browser:
+
+1. `POST /api/auth/login` with `operador@supplychain.com` / `Operador123!`
+2. Copy the `token` from the response into the **Authorize** button
+3. Read stock, history and KPIs. Try `POST /api/movimientos` — that one returns **403**, because writing to the ledger is reserved to the `Admin` role.
 
 ---
 
