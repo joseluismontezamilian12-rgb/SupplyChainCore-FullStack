@@ -77,6 +77,12 @@ Jwt__Key="a-key-of-at-least-32-bytes"   # HS256 rejects anything shorter
 
 ---
 
+## 🚢 Deployment
+
+See **[DEPLOY.md](DEPLOY.md)** for required environment variables, the hosting trade-off (Azure SQL vs. swapping to PostgreSQL) and a post-deploy smoke test.
+
+---
+
 ## 🐳 Running with Docker
 
 Brings up the API and its SQL Server instance together, applying migrations on startup:
