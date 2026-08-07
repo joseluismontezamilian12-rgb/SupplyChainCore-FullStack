@@ -1,0 +1,40 @@
+# Levanta la API y su SQL Server con un solo comando:
+#   docker compose up --build
+# La API queda en http://localhost:8080 y el documento OpenAPI en /openapi/v1.json
+
+services:
+  db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "Desarrollo_Local_123!"
+    ports:
+      - "1433:1433"
+    healthcheck:
+      # La API no arranca hasta que SQL Server acepta conexiones: sin esto la
+      # migración inicial falla por carrera de arranque.
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -C -Q 'SELECT 1' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__DefaultConnection: "Server=db,1433;Database=SupplyChainCoreDb;User Id=sa;Password=Desarrollo_Local_123!;TrustServerCertificate=True;MultipleActiveResultSets=true"
+      Database__AutoMigrate: "true"
+      # Clave de firma solo para este entorno local. En un despliegue real se
+      # inyecta como secreto de la plataforma, nunca en un archivo versionado.
+      Jwt__Key: "clave-solo-para-docker-compose-local-no-usar-en-produccion"
+      Jwt__Issuer: "SupplyChainCore.WebApi"
+      Jwt__Audience: "SupplyChainCore.Client"
+      Cors__OrigenesPermitidos__0: "http://localhost:5173"
+    ports:
+      - "8080:8080"

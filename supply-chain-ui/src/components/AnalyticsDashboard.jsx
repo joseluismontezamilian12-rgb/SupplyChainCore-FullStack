@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { DollarSign, Activity, AlertTriangle, RefreshCw } from 'lucide-react';
+import { apiFetch } from '../api';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
@@ -22,15 +23,18 @@ export default function AnalyticsDashboard() {
   const [tendencia, setTendencia] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchData = async () => {
-    setLoading(true);
+  // No toca `loading` al entrar: el estado ya nace en true para la carga inicial
+  // y actualizar estado de forma síncrona dentro de un efecto encadena renders.
+  const fetchData = useCallback(async (fueCancelado = () => false) => {
     try {
-      const baseUrl = 'https://localhost:7047/api/analytics';
+      // Los tres endpoints van autenticados: apiFetch adjunta el token.
       const [resKpis, resOcupacion, resTendencia] = await Promise.all([
-        fetch(`${baseUrl}/kpis`),
-        fetch(`${baseUrl}/ocupacion`),
-        fetch(`${baseUrl}/tendencia`)
+        apiFetch('/api/analytics/kpis'),
+        apiFetch('/api/analytics/ocupacion'),
+        apiFetch('/api/analytics/tendencia')
       ]);
+
+      if (fueCancelado()) return;
 
       if (resKpis.ok) setKpis(await resKpis.json());
       if (resOcupacion.ok) setOcupacion(await resOcupacion.json());
@@ -38,13 +42,29 @@ export default function AnalyticsDashboard() {
     } catch (error) {
       console.error("Error devorando datos analíticos:", error);
     } finally {
-      setLoading(false);
+      if (!fueCancelado()) setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    // La carga se dispara dentro de una función asíncrona anidada: ningún
+    // setState ocurre de forma síncrona en el cuerpo del efecto. El flag de
+    // cancelación evita actualizar estado si el componente se desmonta antes
+    // de que respondan los tres endpoints.
+    let cancelado = false;
+
+    (async () => {
+      await fetchData(() => cancelado);
+    })();
+
+    return () => { cancelado = true; };
+  }, [fetchData]);
+
+  // El botón sí muestra el spinner explícitamente, porque es una recarga manual.
+  const recargar = async () => {
+    setLoading(true);
+    await fetchData();
+  };
 
   if (loading) {
     return (
@@ -64,7 +84,7 @@ export default function AnalyticsDashboard() {
           <h2 style={{ margin: 0, fontSize: '22px', fontWeight: 'bold', color: '#fff' }}>📊 Enterprise Analytics Dashboard</h2>
           <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: '#9ca3af' }}>Plataforma de Control Estratégico y KPIs Logísticos</p>
         </div>
-        <button onClick={fetchData} style={styles.btnRefresh}>
+        <button onClick={recargar} style={styles.btnRefresh}>
           <RefreshCw size={16} /> Actualizar
         </button>
       </div>
