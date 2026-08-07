@@ -21,6 +21,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\SupplyChainCore.Application\SupplyChainCore.Application.csproj" />
+    <ProjectReference Include="..\SupplyChainCore.Infrastructure\SupplyChainCore.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

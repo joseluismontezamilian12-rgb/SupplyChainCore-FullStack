@@ -1,9 +1,13 @@
 ﻿using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SupplyChainCore.Application.Analytics;
 
 namespace SupplyChainCore.WebApi.Controllers;
 
+// Los KPIs agregan datos de negocio (valorización de inventario, rotación):
+// se exigen credenciales, aunque cualquier rol autenticado puede consultarlos.
+[Authorize]
 [ApiController]
 [Route("api/[controller]")]
 public class AnalyticsController : ControllerBase

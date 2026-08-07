@@ -1,8 +1,13 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using SupplyChainCore.Application.Services;
+using SupplyChainCore.Domain.Entities;
 
 namespace SupplyChainCore.WebApi.Controllers;
 
+// Todo el controlador exige un token válido. Las lecturas quedan abiertas a
+// cualquier usuario autenticado; la escritura se restringe más abajo.
+[Authorize]
 [ApiController]
 [Route("api/[controller]")]
 public class MovimientosController : ControllerBase
@@ -15,16 +20,28 @@ public class MovimientosController : ControllerBase
         _movimientoService = movimientoService;
     }
 
-    // POST: api/movimientos
+    // POST: api/movimientos — única operación que altera el ledger, reservada a Admin.
+    [Authorize(Roles = RolesDelSistema.Admin)]
     [HttpPost]
     public async Task<IActionResult> Registrar([FromBody] RegistrarMovimientoRequest request)
     {
+        // La autoría del movimiento se toma del token, nunca del cuerpo de la
+        // petición: si el cliente pudiera elegir el UsuarioId, cualquiera podría
+        // firmar un movimiento a nombre de otro y el ledger dejaría de ser una
+        // bitácora confiable de quién hizo qué.
+        var usuarioIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
+        if (!int.TryParse(usuarioIdClaim, out int usuarioId))
+        {
+            return Unauthorized(new { error = "El token no contiene un identificador de usuario válido." });
+        }
+
         try
         {
             await _movimientoService.RegistrarTransaccionAsync(
                 request.ProductoId,
                 request.AlmacenId,
-                request.UsuarioId,
+                usuarioId,
                 request.Cantidad,
                 request.TipoMovimiento,
                 request.Motivo
@@ -66,11 +83,11 @@ public class MovimientosController : ControllerBase
     }
 }
 
-// 🔑 DTO (Data Transfer Object) moderno usando C# Records para recibir los datos de React
+// 🔑 DTO (Data Transfer Object) moderno usando C# Records para recibir los datos de React.
+// No lleva UsuarioId a propósito: la identidad la aporta el token, no el cliente.
 public record RegistrarMovimientoRequest(
     int ProductoId,
     int AlmacenId,
-    int UsuarioId,
     int Cantidad,
     string TipoMovimiento,
     string Motivo

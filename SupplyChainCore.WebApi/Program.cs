@@ -1,8 +1,13 @@
+using System.Text;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using SupplyChainCore.Application.Interfaces;
 using SupplyChainCore.Application.Services;
 using SupplyChainCore.Infrastructure.Persistence;
 using SupplyChainCore.Infrastructure.Persistence.Repositories;
+using SupplyChainCore.Infrastructure.Security;
+using SupplyChainCore.WebApi.OpenApi;
 // 🔑 Nuevas directivas para reconocer el motor analítico de KPIs
 using SupplyChainCore.Application.Analytics;
 using SupplyChainCore.Infrastructure.Analytics;
@@ -10,11 +15,16 @@ using SupplyChainCore.Infrastructure.Analytics;
 var builder = WebApplication.CreateBuilder(args);
 
 // 🔑 1. DEFINIR LA POLÍTICA DE CORS (Permitir que React se conecte)
+// Los orígenes salen de configuración para no tener que recompilar al desplegar.
+string[] origenesPermitidos = builder.Configuration
+    .GetSection("Cors:OrigenesPermitidos")
+    .Get<string[]>() ?? ["http://localhost:5173", "http://localhost:3000"];
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowReactApp", policy =>
     {
-        policy.WithOrigins("http://localhost:5173", "http://localhost:3000") // Puertos estándar de Vite y React
+        policy.WithOrigins(origenesPermitidos)
               .AllowAnyMethod()
               .AllowAnyHeader();
     });
@@ -24,17 +34,75 @@ builder.Services.AddCors(options =>
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+// 🔐 2. AUTENTICACIÓN JWT
+// La clave se lee de configuración: en local desde appsettings.Development.json o
+// user-secrets, en producción desde la variable de entorno Jwt__Key.
+var jwtOptions = builder.Configuration
+    .GetSection(JwtOptions.SeccionConfig)
+    .Get<JwtOptions>() ?? new JwtOptions();
+
+if (string.IsNullOrWhiteSpace(jwtOptions.Key))
+{
+    throw new InvalidOperationException(
+        "Falta la clave de firma JWT. Configure 'Jwt:Key' (o la variable de entorno Jwt__Key) antes de iniciar la API.");
+}
+
+builder.Services.AddSingleton(jwtOptions);
+
+builder.Services
+    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = jwtOptions.Issuer,
+            ValidAudience = jwtOptions.Audience,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.Key)),
+            // Por defecto .NET tolera 5 minutos de desfase de reloj: un token
+            // expirado seguiría siendo aceptado durante ese margen.
+            ClockSkew = TimeSpan.Zero
+        };
+    });
+
+builder.Services.AddAuthorization();
+
 // Repositorios y Servicios Transaccionales (Módulo Ledger Logístico)
 builder.Services.AddScoped<IMovimientoInventarioRepository, MovimientoInventarioRepository>();
 builder.Services.AddScoped<IMovimientoService, MovimientoService>();
 
-// 📊 NUEVO: Registro de Inyección de Dependencias para el Dashboard Analítico
+// 🔐 Servicios de identidad
+builder.Services.AddScoped<IUsuarioRepository, UsuarioRepository>();
+builder.Services.AddSingleton<IPasswordHasher, Pbkdf2PasswordHasher>();
+builder.Services.AddScoped<ITokenService, JwtTokenService>();
+builder.Services.AddScoped<IAuthService, AuthService>();
+
+// 📊 Registro de Inyección de Dependencias para el Dashboard Analítico
 builder.Services.AddScoped<IAnalyticsService, AnalyticsService>();
 
 builder.Services.AddControllers();
-builder.Services.AddOpenApi();
+builder.Services.AddOpenApi(options =>
+{
+    // Declara el esquema Bearer en el documento OpenAPI para que quien lo lea
+    // sepa que los endpoints van autenticados y con qué formato de cabecera.
+    options.AddDocumentTransformer<SeguridadBearerTransformer>();
+});
 
 var app = builder.Build();
+
+// Aplica las migraciones pendientes al arrancar. Se activa con Database:AutoMigrate
+// y existe para el contenedor, donde no hay una consola donde correr `dotnet ef`.
+// Queda desactivado por defecto: en un entorno serio las migraciones son un paso
+// deliberado del despliegue, no un efecto secundario de encender la aplicación.
+if (app.Configuration.GetValue<bool>("Database:AutoMigrate"))
+{
+    using var scope = app.Services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    await db.Database.MigrateAsync();
+}
 
 if (app.Environment.IsDevelopment())
 {
@@ -43,9 +111,18 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-// 🔑 2. ACTIVAR CORS EN EL PIPELINE (Debe ir estrictamente antes de Authorization)
+// 🔑 3. ACTIVAR CORS EN EL PIPELINE (Debe ir estrictamente antes de Authorization)
 app.UseCors("AllowReactApp");
+
+// El orden importa: primero se resuelve QUIÉN es el llamante (Authentication),
+// solo después se decide si PUEDE hacer la operación (Authorization).
+app.UseAuthentication();
 app.UseAuthorization();
+
 app.MapControllers();
 
 app.Run();
+
+// Expuesto para que el proyecto de tests pueda referenciar el host si se añaden
+// pruebas de integración con WebApplicationFactory.
+public partial class Program { }

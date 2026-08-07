@@ -40,6 +40,60 @@ The backend follows **Clean Architecture** and the Single Responsibility Princip
 
 ---
 
+## 🔐 Authentication & Authorization
+
+Every endpoint except `POST /api/auth/login` requires a **JWT bearer token**.
+
+| Endpoint | Method | Access |
+| :-- | :-- | :-- |
+| `/api/auth/login` | POST | Anonymous |
+| `/api/auth/me` | GET | Any authenticated user |
+| `/api/movimientos/stock/{producto}/{almacen}` | GET | Any authenticated user |
+| `/api/movimientos/historial/{producto}/{almacen}` | GET | Any authenticated user |
+| `/api/movimientos` | POST | **`Admin` role only** |
+| `/api/analytics/*` | GET | Any authenticated user |
+
+Design decisions worth calling out:
+
+- **Passwords are stored as PBKDF2-HMAC-SHA256** (100,000 iterations, a random 16-byte salt per user), compared in constant time with `CryptographicOperations.FixedTimeEquals`. The iteration count is embedded in the stored value (`{iterations}.{salt}.{hash}`) so the work factor can be raised later without invalidating existing passwords.
+- **The ledger's authorship comes from the token, never from the request body.** `POST /api/movimientos` reads the user id from the `NameIdentifier` claim; if the client could choose it, anyone could sign a movement in someone else's name and the ledger would stop being a trustworthy audit trail.
+- **A failed login is indistinguishable from an unknown email** — same response, and the same cryptographic work is performed either way, so response timing does not reveal which accounts exist.
+- `ClockSkew` is set to `TimeSpan.Zero`; the .NET default silently accepts tokens for 5 minutes past expiry.
+
+### Demo accounts (seeded)
+
+| Email | Password | Role |
+| :-- | :-- | :-- |
+| `jose@supplychain.com` | `Admin123!` | `Admin` — can write to the ledger |
+| `operador@supplychain.com` | `Operador123!` | `Operador` — read-only |
+
+### Configuring the signing key
+
+`appsettings.json` ships with an empty `Jwt:Key` and **the API refuses to start without one**. For local development the key lives in `appsettings.Development.json`; anywhere else, supply it as an environment variable:
+
+```bash
+Jwt__Key="a-key-of-at-least-32-bytes"   # HS256 rejects anything shorter
+```
+
+---
+
+## 🚢 Deployment
+
+See **[DEPLOY.md](DEPLOY.md)** for required environment variables, the hosting trade-off (Azure SQL vs. swapping to PostgreSQL) and a post-deploy smoke test.
+
+---
+
+## 🐳 Running with Docker
+
+Brings up the API and its SQL Server instance together, applying migrations on startup:
+
+```bash
+docker compose up --build
+# API on http://localhost:8080 — OpenAPI document at /openapi/v1.json
+```
+
+---
+
 ## 🚀 Getting Started
 
 ### Prerequisites
@@ -66,10 +120,16 @@ npm install
 npm run dev
 ```
 
+The API base URL defaults to `https://localhost:7047`. Point it elsewhere with a `.env` file:
+
+```bash
+VITE_API_BASE_URL=http://localhost:8080
+```
+
 ### Tests
 
 ```bash
-dotnet test
+dotnet test    # 57 unit tests: ledger rules, password hashing, JWT issuance, login flow
 ```
 
 ---
