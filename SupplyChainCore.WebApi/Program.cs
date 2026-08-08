@@ -110,6 +110,20 @@ if (app.Configuration.GetValue<bool>("Database:AutoMigrate"))
 // la API, no exponen datos — mientras que cada operación sigue exigiendo token.
 app.MapOpenApi();
 
+// Servida en la raíz, la interfaz de Swagger responde a "/" con un 301 hacia
+// "index.html" — un destino relativo. Los navegadores lo resuelven sin problema,
+// pero varios rastreadores lo rechazan y reportan la URL como inalcanzable.
+// Reescribimos la ruta internamente para devolver 200 directo, sin redirección.
+app.Use(async (context, next) =>
+{
+    if (context.Request.Path == "/")
+    {
+        context.Request.Path = "/index.html";
+    }
+
+    await next();
+});
+
 app.UseSwaggerUI(options =>
 {
     options.SwaggerEndpoint("/openapi/v1.json", "SupplyChainCore API v1");
