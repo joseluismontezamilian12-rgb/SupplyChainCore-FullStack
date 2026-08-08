@@ -110,6 +110,20 @@ if (app.Configuration.GetValue<bool>("Database:AutoMigrate"))
 // la API, no exponen datos — mientras que cada operación sigue exigiendo token.
 app.MapOpenApi();
 
+// Servida en la raíz, la interfaz de Swagger responde a "/" con un 301 hacia
+// "index.html" — un destino relativo. Los navegadores lo resuelven sin problema,
+// pero varios rastreadores lo rechazan y reportan la URL como inalcanzable.
+// Reescribimos la ruta internamente para devolver 200 directo, sin redirección.
+app.Use(async (context, next) =>
+{
+    if (context.Request.Path == "/")
+    {
+        context.Request.Path = "/index.html";
+    }
+
+    await next();
+});
+
 app.UseSwaggerUI(options =>
 {
     options.SwaggerEndpoint("/openapi/v1.json", "SupplyChainCore API v1");
@@ -117,6 +131,21 @@ app.UseSwaggerUI(options =>
     // Servida en la raíz: quien abra la URL del despliegue aterriza en la
     // documentación en vez de recibir un 404.
     options.RoutePrefix = string.Empty;
+
+    // La página de Swagger es un esqueleto que se rellena por JavaScript: sin
+    // estas etiquetas, un rastreador social solo ve un documento vacío y se
+    // niega a generar la vista previa del enlace. Se inyectan en el <head> para
+    // que compartir esta URL muestre una tarjeta con título y descripción.
+    options.HeadContent = """
+        <meta name="description" content="API REST de inventarios en .NET 10: ledger inmutable, Clean Architecture, JWT con autorizacion por roles y 57 pruebas unitarias. Documentacion publica: pruebala desde el navegador.">
+        <meta property="og:type" content="website">
+        <meta property="og:site_name" content="Jose Luis Monteza">
+        <meta property="og:title" content="SupplyChainCore API - inventarios en .NET 10 sobre Azure">
+        <meta property="og:description" content="Ledger inmutable, Clean Architecture y JWT + RBAC. Entra con la cuenta de solo lectura (operador@supplychain.com / Operador123!) e intenta escribir: responde 403.">
+        <meta property="og:url" content="https://supplychaincore-api-lnxj7c.azurewebsites.net">
+        <meta property="og:image" content="https://avatars.githubusercontent.com/u/272381527?v=4">
+        <meta name="twitter:card" content="summary">
+        """;
 });
 
 app.UseHttpsRedirection();
