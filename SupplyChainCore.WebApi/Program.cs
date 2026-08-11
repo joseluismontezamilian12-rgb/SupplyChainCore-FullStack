@@ -32,7 +32,16 @@ builder.Services.AddCors(options =>
 
 // Inyección de Dependencias - Base de Datos
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseSqlServer(
+        builder.Configuration.GetConnectionString("DefaultConnection"),
+        // Azure SQL en modo serverless pausa la base cuando nadie la usa. La primera
+        // consulta tras la pausa falla mientras el servidor despierta, y sin reintentos
+        // eso llega al cliente como un 500 — la API parece rota cuando solo estaba
+        // dormida. La estrategia de reintentos absorbe justamente ese error transitorio.
+        sql => sql.EnableRetryOnFailure(
+            maxRetryCount: 8,
+            maxRetryDelay: TimeSpan.FromSeconds(15),
+            errorNumbersToAdd: null)));
 
 // 🔐 2. AUTENTICACIÓN JWT
 // La clave se lee de configuración: en local desde appsettings.Development.json o
