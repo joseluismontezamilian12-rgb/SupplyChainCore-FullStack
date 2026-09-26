@@ -33,12 +33,14 @@ The backend follows **Clean Architecture** and the Single Responsibility Princip
 
 | Component | Technology | Purpose |
 | :-- | :-- | :-- |
-| Backend | .NET 10 / C# | Core server framework |
-| Persistence | Entity Framework Core | Object-relational mapping |
-| Database | Microsoft SQL Server | Relational storage |
-| Testing | xUnit / Moq | Unit testing & dependency mocking |
-| Frontend | React / Vite | UI library & build tooling |
-| Security | JWT · RBAC · CORS | Authentication, authorization & perimeter policies |
+| Backend | .NET 10 / C# · ASP.NET Core Web API | Core server framework |
+| Persistence | Entity Framework Core | Object-relational mapping & migrations |
+| Database | SQL Server locally · Azure SQL in production | Relational storage |
+| Testing | xUnit / Moq | 57 unit tests, dependency mocking |
+| CI | GitHub Actions | Builds and runs the test suite on every push |
+| Frontend | React 19 / Vite · Recharts | Dashboard over the analytics endpoints |
+| Security | JWT · RBAC · PBKDF2 · CORS | Authentication, authorization & perimeter policies |
+| Delivery | Docker · Azure App Service | Containerised API, deployed and public |
 
 ---
 
@@ -143,6 +145,13 @@ VITE_API_BASE_URL=http://localhost:8080
 ```bash
 dotnet test    # 57 unit tests: ledger rules, password hashing, JWT issuance, login flow
 ```
+
+---
+
+## Author
+
+**José Luis Monteza Milian** — Backend / Full-Stack Developer (.NET · React · TypeScript), Lima, Peru.  
+[Portfolio](https://joseluismontezamilian12-rgb.github.io/portafolio-frontend/) · [LinkedIn](https://www.linkedin.com/in/joseluismonteza) · [GitHub](https://github.com/joseluismontezamilian12-rgb)
 
 ---
 
